@@ -1,8 +1,15 @@
-import type { Metadata } from "next";
+// app/layout.tsx
+// ✅ Bỏ "use client", giữ layout là Server Component
+
+import type { Metadata } from "next"; // ✅ Giữ lại metadata
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { NextAuthProvider } from "./SessionProvider";
+import Navbar from "./Navbar"; // ✅ 1. Import component Navbar mới
+
+// ✅ 2. Giữ nguyên định nghĩa font (đây là phần bị thiếu)
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -13,6 +20,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ✅ 3. Giữ nguyên metadata
 export const metadata: Metadata = {
   title: "Recipe App",
   description: "Simple Recipe Management App",
@@ -23,32 +31,23 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // ❌ Logic 'useSession' và 'usePathname' đã được chuyển
+  // sang component Navbar.tsx
+
   return (
     <html lang="en">
+      {/* ✅ 4. Áp dụng font (đây là dòng báo lỗi) */}
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-gray-50 min-h-screen`}
       >
-        {/* Navbar */}
-        <header className="bg-white shadow-sm">
-          <nav className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-            <Link href="/" className="text-2xl font-semibold">
-              🍽️ Recipe App
-            </Link>
+        {/* ✅ 5. Bọc provider ở ngoài */}
+        <NextAuthProvider>
+          {/* ✅ 6. Render Navbar (Client Component) */}
+          <Navbar />
 
-            <div className="flex gap-6">
-              
-              <Link
-                href="/recipes/new"
-                className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"
-              >
-                ➕ Add Recipe
-              </Link>
-            </div>
-          </nav>
-        </header>
-
-        {/* Page Content */}
-        <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
+          {/* Page Content */}
+          <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
+        </NextAuthProvider>
       </body>
     </html>
   );

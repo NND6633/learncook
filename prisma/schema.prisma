@@ -23,3 +23,13 @@ model Recipe {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+// prisma/schema.prisma
+
+// ... (model Recipe của bạn ở trên) ...
+
+model User {
+  id             Int      @id @default(autoincrement())
+  email          String   @unique
+  hashedPassword String   // Sẽ lưu mật khẩu đã được mã hóa
+  createdAt      DateTime @default(now())
+}

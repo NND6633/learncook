@@ -1,3 +1,4 @@
+// app/recipes/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -21,7 +22,7 @@ export default function RecipesPage() {
       limit: String(pageSize),
       search,
       tag,
-      sort
+      sort,
     });
 
     const res = await fetch(`/api/recipes?${params.toString()}`, {
@@ -33,26 +34,22 @@ export default function RecipesPage() {
     setTotal(data.total);
   };
 
-  useEffect(() => { load(); }, [page, search, tag, sort]);
+  useEffect(() => {
+    load();
+  }, [page, search, tag, sort]);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
-
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <Link href="/" className="text-2xl font-semibold">🍽️ Recipe App</Link>
-        <Link href="/recipes/new" className="bg-green-600 text-white px-4 py-2 rounded">
-          + Add Recipe
-        </Link>
-      </div>
-
       {/* Search / Filter / Sort */}
       <div className="flex flex-wrap gap-3">
         <input
           type="text"
           placeholder="Search recipes..."
           value={search}
-          onChange={(e) => { setPage(1); setSearch(e.target.value); }}
+          onChange={(e) => {
+            setPage(1);
+            setSearch(e.target.value);
+          }}
           className="border p-2 rounded w-60"
         />
 
@@ -84,10 +81,18 @@ export default function RecipesPage() {
       {/* List */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {recipes.map((r) => (
-          <div key={r.id} className="border rounded p-4 shadow bg-white">
-
+          // ✅ Thay đổi 1: Bọc toàn bộ nội dung bằng <Link>
+          <Link
+            href={`/recipes/${r.id}`}
+            key={r.id}
+            className="block border rounded p-4 shadow bg-white hover:shadow-md transition-shadow"
+          >
             {r.imageUrl ? (
-              <img src={r.imageUrl} className="w-full h-40 object-cover rounded mb-2" />
+              <img
+                src={r.imageUrl}
+                className="w-full h-40 object-cover rounded mb-2"
+                alt={r.title}
+              />
             ) : (
               <div className="w-full h-40 bg-gray-200 flex items-center justify-center rounded">
                 No Image
@@ -99,10 +104,11 @@ export default function RecipesPage() {
               {r.tags?.length ? r.tags.join(", ") : "No tags"}
             </p>
 
-            <Link href={`/recipes/${r.id}`} className="text-blue-600 mt-2 inline-block">
-              ✏️ Edit Recipe
-            </Link>
-          </div>
+            {/* ✅ Thay đổi 2: Bỏ <Link> bên trong, chỉ giữ lại text */}
+            <p className="text-blue-600 mt-2 inline-block">
+              View
+            </p>
+          </Link>
         ))}
       </div>
 
@@ -110,7 +116,12 @@ export default function RecipesPage() {
       {totalPages > 1 && (
         <div className="flex justify-center space-x-2 mt-6">
           {page > 1 && (
-            <button onClick={() => setPage(page - 1)} className="px-3 py-2 bg-gray-300 rounded">←</button>
+            <button
+              onClick={() => setPage(page - 1)}
+              className="px-3 py-2 bg-gray-300 rounded"
+            >
+              ←
+            </button>
           )}
 
           {[...Array(totalPages)].map((_, i) => (
@@ -126,7 +137,12 @@ export default function RecipesPage() {
           ))}
 
           {page < totalPages && (
-            <button onClick={() => setPage(page + 1)} className="px-3 py-2 bg-gray-300 rounded">→</button>
+            <button
+              onClick={() => setPage(page + 1)}
+              className="px-3 py-2 bg-gray-300 rounded"
+            >
+              →
+            </button>
           )}
         </div>
       )}

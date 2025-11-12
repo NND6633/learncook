@@ -1,9 +1,13 @@
-// app/recipes/new/page.tsx
+// app/recipes/[id]/edit/page.tsx
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-export default function NewRecipe() {
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+// ✅ Đổi tên component cho rõ ràng
+export default function EditRecipePage() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -11,8 +15,32 @@ export default function NewRecipe() {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const defaultTags = ["Vegan", "Healthy", "Dessert", "Breakfast"];
+
+  useEffect(() => {
+    if (!id) return;
+
+    const load = async () => {
+      const res = await fetch(`/api/recipes/${id}`, { cache: "no-store" });
+
+      if (!res.ok) {
+        alert("Không tải được recipe. ID không tồn tại");
+        router.push("/recipes");
+        return;
+      }
+
+      const data = await res.json();
+      setTitle(data.title);
+      setIngredients(data.ingredients);
+      setTags(data.tags ?? []);
+      setImageUrl(data.imageUrl || "");
+      setLoading(false);
+    };
+
+    load();
+  }, [id, router]);
 
   const addTag = (tag: string) => {
     if (!tag.trim() || tags.includes(tag)) return;
@@ -24,10 +52,10 @@ export default function NewRecipe() {
     setTags(tags.filter((t) => t !== tag));
   };
 
-  const submit = async () => {
-    await fetch("/api/recipes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }, // ✅ Thêm header cho rõ ràng
+  const save = async () => {
+    await fetch(`/api/recipes/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         ingredients,
@@ -36,19 +64,24 @@ export default function NewRecipe() {
       }),
     });
 
-    router.push("/recipes");
-    router.refresh(); // ✅ Thêm refresh để đảm bảo danh sách được cập nhật
+    // ✅ Sau khi lưu, quay lại trang view
+    router.push(`/recipes/${id}`);
+    router.refresh();
   };
+
+  // ❌ Đã XÓA nút/hàm 'remove'
+  // Nút Delete sẽ nằm ở trang View
+
+  if (loading) return <div className="p-6 text-lg">⏳ Đang tải...</div>;
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
-      <h1 className="font-bold text-2xl">➕ Add New Recipe</h1>
+      <h1 className="font-bold text-2xl mb-2">✏️ Edit Recipe</h1>
 
       <div className="space-y-2">
         <label className="font-semibold">Title</label>
         <input
           className="border p-2 w-full rounded"
-          placeholder="Recipe title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -59,13 +92,12 @@ export default function NewRecipe() {
         <textarea
           className="border p-2 w-full rounded"
           rows={4}
-          placeholder="List ingredients..."
           value={ingredients}
           onChange={(e) => setIngredients(e.target.value)}
         />
       </div>
 
-      {/* ✅ Tags Select & Add */}
+      {/* Tag selector */}
       <div className="space-y-2">
         <label className="font-semibold">Tags</label>
 
@@ -76,7 +108,7 @@ export default function NewRecipe() {
             defaultValue=""
           >
             <option value="" disabled>
-              Select a tag
+              Select tag
             </option>
             {defaultTags.map((t) => (
               <option key={t} value={t}>
@@ -100,7 +132,7 @@ export default function NewRecipe() {
           </button>
         </div>
 
-        {/* ✅ Tag Chips */}
+        {/* Tag chips */}
         <div className="flex flex-wrap gap-2 mt-2">
           {tags.map((tag) => (
             <span
@@ -109,8 +141,8 @@ export default function NewRecipe() {
             >
               {tag}
               <button
-                onClick={() => removeTag(tag)}
                 className="text-red-600 font-bold"
+                onClick={() => removeTag(tag)}
               >
                 ×
               </button>
@@ -119,22 +151,41 @@ export default function NewRecipe() {
         </div>
       </div>
 
+      {/* Image */}
       <div className="space-y-2">
         <label className="font-semibold">Image URL</label>
         <input
           className="border p-2 w-full rounded"
-          placeholder="https://..."
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
         />
       </div>
 
-      <button
-        className="w-full bg-blue-600 text-white py-3 rounded font-semibold"
-        onClick={submit}
-      >
-        ✅ Save Recipe
-      </button>
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          className="w-full h-48 object-cover rounded shadow"
+          alt={title}
+        />
+      )}
+
+      {/* Buttons */}
+      <div className="flex justify-between pt-2">
+        <button
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={save}
+        >
+          💾 Save Changes
+        </button>
+
+        {/* ✅ Quay lại trang View (không phải danh sách) */}
+        <Link
+          href={`/recipes/${id}`}
+          className="bg-gray-500 text-white px-4 py-2 rounded"
+        >
+          Cancel
+        </Link>
+      </div>
     </div>
   );
 }

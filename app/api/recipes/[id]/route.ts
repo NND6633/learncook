@@ -1,25 +1,38 @@
+// app/api/recipes/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-// ✅ Function helper lấy id
-async function getId(context: any) {
-  const { id } = await context.params; // Unwrap Promise
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+
+// ✅ SỬA LỖI: Định nghĩa 'params' là một Promise
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+// Hàm 'getId' (vẫn sử dụng 'await')
+async function getId(context: RouteContext) {
+  // 'context.params' là một Promise, cần 'await'
+  const { id } = await context.params; // <-- Dòng này bây giờ khớp với type
   const recipeId = Number(id);
   if (isNaN(recipeId)) return null;
   return recipeId;
 }
 
 /* ------------------ GET ------------------ */
-export async function GET(req: NextRequest, context: any) {
+// Chữ ký hàm không đổi, vì nó dùng RouteContext
+export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const recipeId = await getId(context);
     if (!recipeId) {
-      return NextResponse.json({ error: "ID không hợp lệ" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    const recipe = await prisma.recipe.findUnique({ where: { id: recipeId }});
+    const recipe = await prisma.recipe.findUnique({ where: { id: recipeId } });
     if (!recipe) {
-      return NextResponse.json({ error: "Không tìm thấy" }, { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json(recipe);
@@ -30,11 +43,17 @@ export async function GET(req: NextRequest, context: any) {
 }
 
 /* ------------------ PUT ------------------ */
-export async function PUT(req: NextRequest, context: any) {
+// Chữ ký hàm không đổi
+export async function PUT(req: NextRequest, context: RouteContext) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const recipeId = await getId(context);
     if (!recipeId) {
-      return NextResponse.json({ error: "ID không hợp lệ" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
     const body = await req.json();
@@ -45,7 +64,7 @@ export async function PUT(req: NextRequest, context: any) {
         title: body.title,
         ingredients: body.ingredients,
         tags: body.tags ?? [],
-        imageUrl: body.imageUrl ?? null
+        imageUrl: body.imageUrl ?? null,
       },
     });
 
@@ -54,7 +73,7 @@ export async function PUT(req: NextRequest, context: any) {
     console.error("🔥 PUT Error:", error);
 
     if (error.code === "P2025") {
-      return NextResponse.json({ error: "Không tìm thấy recipe" }, { status: 404 });
+      return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
     }
 
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
@@ -62,21 +81,27 @@ export async function PUT(req: NextRequest, context: any) {
 }
 
 /* ------------------ DELETE ------------------ */
-export async function DELETE(req: NextRequest, context: any) {
+// Chữ ký hàm không đổi
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const recipeId = await getId(context);
     if (!recipeId) {
-      return NextResponse.json({ error: "ID không hợp lệ" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    await prisma.recipe.delete({ where: { id: recipeId }});
+    await prisma.recipe.delete({ where: { id: recipeId } });
 
-    return NextResponse.json({ message: "Đã xóa" });
+    return NextResponse.json({ message: "Deleted" });
   } catch (error: any) {
     console.error("🔥 DELETE Error:", error);
 
     if (error.code === "P2025") {
-      return NextResponse.json({ error: "Không tìm thấy recipe" }, { status: 404 });
+      return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
     }
 
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
